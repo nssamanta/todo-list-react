@@ -12,7 +12,7 @@ function addTodo(title) {
 }
 
 function completeTodo(id) {
-  const updateTodos = todoList.map(todo => {
+  const updatedTodos = todoList.map(todo => {
     if (todo.id === id) {
       return {...todo, isCompleted: true};
     } else {
