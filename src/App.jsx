@@ -11,29 +11,59 @@ function App() {
   const url = `https://api.airtable.com/v0/${import.meta.env.VITE_BASE_ID}/${import.meta.env.VITE_TABLE_NAME}`;
   const token = `Bearer ${import.meta.env.VITE_PAT}`;
 
+  //common headers
+const commonHeaders = {
+  Authorization: token,
+  'Content-Type': 'application/json'
+};
+//common fetch options pattern
+const createFetchOptions = (method, payload = null) => ({
+  method, 
+  headers: commonHeaders,
+  ...(payload && { body: JSON.stringify(payload) }),
+});
+//payload builder function
+const createTodoPayload = (todo, includeId = false) => ({
+  records: [
+    {
+      ...(includeId && { id: todo.id }),
+      fields: {
+        title: todo.title,
+        isCompleted: todo.isCompleted,
+      },
+    },
+  ],
+});
+//Todo transformer function 
+const transformAirtableRecord = (record) => {
+  const todo = {
+    id: record.id,
+    ...record.fields,
+  };
+  if (!todo.isCompleted) {
+    todo.isCompleted = false;
+  }
+  return todo;
+};
+//error handling helper
+const handleApiError = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(()=> ({}));
+    throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+  }
+  return response;
+};
+
   useEffect(() => {
     const fetchTodos = async () => {
       setIsLoading(true); //shows loading message
-      const options = {method: "GET", headers: {"Authorization": token}}; //tells fetch this is a GET request with authentication
+      const options = createFetchOptions('GET'); //tells fetch this is a GET request with authentication
       try {
         const resp = await fetch(url, options); //makes api call and waits for response
-        if (!resp.ok) {
-          //checks if API returned an error
-          throw new Error(resp.message);
-        }
+        await handleApiError(resp);
         const response = await resp.json(); //convert response to jS object
-        const records = response.records; //extract records array
         //transform each airtable record into a todo object
-        const fetchedTodos = records.map((record) => {
-          const todo = {
-            id: record.id, //get id from top level
-            ...record.fields, //spread all fields to top level
-          };
-          if (!todo.isCompleted) {
-            todo.isCompleted = false;
-          }
-          return todo;
-        });
+        const fetchedTodos = response.records.map(transformAirtableRecord);
         setTodoList(fetchedTodos); //update app state
       } catch (error) {
         setErrorMessage(error.message); // Display error to user
@@ -45,40 +75,17 @@ function App() {
   }, [])
 
   const addTodo = async (newTodo) => {
-   const payload = {
-    records: [
-      {
-        fields: {
-          title: newTodo.title,
-          isCompleted: newTodo.isCompleted,
-        },
-      },
-    ],
-   };
-   const options = {
-    method: 'POST',
-    headers: {
-      Authorization: token, 
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-   };
+   const payload = createTodoPayload(newTodo);
+   const options = createFetchOptions('POST', payload);
 
    try {
     setIsSaving(true);
     const resp = await fetch(url, options);
-    if(!resp.ok) {
-      throw new Error(resp.message);
-    }
+    await handleApiError(resp);
     //process response and update state
     const { records } = await resp.json();
-    const savedTodo = {
-      id: records[0].id,
-      ...records[0].fields,
-    }
-    if (!records[0].fields.isCompleted) {
-      savedTodo.isCompleted = false;
-    }
+    
+    const savedTodo = transformAirtableRecord(records[0]); 
     setTodoList([...todoList, savedTodo]);
    } catch (error) {
     console.log(error);
@@ -90,25 +97,9 @@ function App() {
 
   const completeTodo = async (id) => {
     const originalTodo = todoList.find((todo) => todo.id === id);
-    const payload = {
-      records: [
-        {
-          id: id,
-          fields: {
-            title: originalTodo.title,
-            isCompleted: true,
-          },
-        },
-      ],
-    };
-    const options = {
-      method: 'PATCH',
-      headers: {
-        Authorization: token, 
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    };
+    const updatedTodo = {...originalTodo, isCompleted: true};
+    const payload = createTodoPayload(updatedTodo, true);
+    const options = createFetchOptions('PATCH', payload);
 
     const updatedTodos = todoList.map(todo => {
       if (todo.id === id) {
@@ -122,9 +113,7 @@ function App() {
     try {
       setIsSaving(true);
       const resp = await fetch(url, options);
-      if (!resp.ok) {
-        throw new Error(resp.message);
-      }
+      await handleApiError(resp);
     } catch (error) {
       console.log(error);
       setErrorMessage(`${error.message}. Reverting todo...`);
@@ -146,26 +135,9 @@ function App() {
     //save original todo
     const originalTodo = todoList.find((todo) => todo.id === editedTodo.id);
     //create payload object
-    const payload = {
-      records: [
-        {
-          id: editedTodo.id,
-          fields: {
-            title: editedTodo.title,
-            isCompleted: editedTodo.isCompleted,
-          },
-        },
-      ],
-    };
+    const payload = createTodoPayload(editedTodo, true);
     //create options object
-    const options = {
-      method: 'PATCH', //use PATCH method
-      headers: {
-        Authorization: token, 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload), 
-    };
+    const options = createFetchOptions('PATCH', payload);
 
     const updatedTodos = todoList.map(todo => {
       if (todo.id === editedTodo.id) {
@@ -179,9 +151,7 @@ function App() {
     try {
       setIsSaving(true);
       const resp = await fetch(url, options);
-      if (!resp.ok) {
-        throw new Error(resp.message);
-      }
+      await handleApiError(resp);
       //the optimisitc update stays
     } catch (error) {
       console.log(error);
