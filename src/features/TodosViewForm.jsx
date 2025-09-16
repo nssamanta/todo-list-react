@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 function TodosViewForm({
   sortDirection,
   setSortDirection,
@@ -6,24 +8,47 @@ function TodosViewForm({
   queryString,
   setQueryString,
 }) {
+  const [localQueryString, setLocalQueryString] = useState(queryString);
+
+  useEffect(()=>{
+    console.log('🔄 useEffect triggered, localQueryString:', localQueryString);
+    const debounce = setTimeout(()=> {
+      console.log(
+        '⏰ Timer executed! Setting queryString to:',
+        localQueryString
+      );
+      setQueryString(localQueryString)},500);
+
+    console.log('🔁 New timer set for 500ms');
+
+    return () => {
+      console.log('🧹 Cleanup: clearing timeout (timer reset)', debounce);
+      clearTimeout(debounce);
+      };
+  }, [localQueryString, setQueryString]);
+
   const preventRefresh = e => {
     e.preventDefault();
   };
+
+
   return (
     <form onSubmit={preventRefresh}>
       <div>
         <label>Search Todos</label>
         <input
           type="text"
-          value={queryString}
+          value={localQueryString}
           onChange={e => {
-            setQueryString(e.target.value);
+            console.log('⌨️ User typed:', e.target.value);
+            setLocalQueryString(e.target.value);
           }}
-        ></input>
+        />
         <button
           type="button"
           onClick={e => {
-            setQueryString("");
+            console.log('🗑️ Clear button clicked');
+            setLocalQueryString("");
           }}
         >
           Clear

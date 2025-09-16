@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import './App.css';
 import TodoList from './features/TodoList/TodoList';
 import TodoForm from './features/TodoForm';
@@ -7,74 +7,80 @@ import TodosViewForm from './features/TodosViewForm';
 function App() {
   const [todoList, setTodoList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [sortField, setSortField] = useState("createdTime");
-  const [sortDirection, setSortDirection] = useState("desc");
-  const [queryString, setQueryString] = useState("");
+  const [sortField, setSortField] = useState('createdTime');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [queryString, setQueryString] = useState('');
 
   const url = `https://api.airtable.com/v0/${import.meta.env.VITE_BASE_ID}/${import.meta.env.VITE_TABLE_NAME}`;
   const token = `Bearer ${import.meta.env.VITE_PAT}`;
 
-  const encodeUrl = ({ sortField, sortDirection, queryString }) => {
+  const encodeUrl = useCallback(() => {
     let sortQuery = `sort[0][field]=${sortField}&sort[0][direction]=${sortDirection}`;
     let searchQuery = '';
     if (queryString) {
       searchQuery = `&filterByFormula=SEARCH("${queryString}",+title)`;
     }
     return encodeURI(`${url}?${sortQuery}${searchQuery}`);
-  };
-  
-  
+  }, [sortDirection, sortField, queryString]);
+
   //common headers
-const commonHeaders = {
-  Authorization: token,
-  'Content-Type': 'application/json'
-};
-//common fetch options pattern
-const createFetchOptions = (method, payload = null) => ({
-  method, 
-  headers: commonHeaders,
-  ...(payload && { body: JSON.stringify(payload) }),
-});
-//payload builder function
-const createTodoPayload = (todo, includeId = false) => ({
-  records: [
-    {
-      ...(includeId && { id: todo.id }),
-      fields: {
-        title: todo.title,
-        isCompleted: todo.isCompleted,
-      },
-    },
-  ],
-});
-//Todo transformer function 
-const transformAirtableRecord = (record) => {
-  const todo = {
-    id: record.id,
-    ...record.fields,
+  const commonHeaders = {
+    Authorization: token,
+    'Content-Type': 'application/json',
   };
-  if (!todo.isCompleted) {
-    todo.isCompleted = false;
-  }
-  return todo;
-};
-//error handling helper
-const handleApiError = async (response) => {
-  if (!response.ok) {
-    const errorData = await response.json().catch(()=> ({}));
-    throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
-  }
-  return response;
-};
+  //common fetch options pattern
+  const createFetchOptions = (method, payload = null) => ({
+    method,
+    headers: commonHeaders,
+    ...(payload && { body: JSON.stringify(payload) }),
+  });
+  //payload builder function
+  const createTodoPayload = (todo, includeId = false) => ({
+    records: [
+      {
+        ...(includeId && { id: todo.id }),
+        fields: {
+          title: todo.title,
+          isCompleted: todo.isCompleted,
+        },
+      },
+    ],
+  });
+  //Todo transformer function
+  const transformAirtableRecord = record => {
+    const todo = {
+      id: record.id,
+      ...record.fields,
+    };
+    if (!todo.isCompleted) {
+      todo.isCompleted = false;
+    }
+    return todo;
+  };
+  //error handling helper
+  const handleApiError = async response => {
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error?.message ||
+          `Request failed with status ${response.status}`
+      );
+    }
+    return response;
+  };
 
   useEffect(() => {
+    console.log('🌐 API call triggered! queryString:', queryString);
     const fetchTodos = async () => {
       setIsLoading(true); //shows loading message
       const options = createFetchOptions('GET'); //tells fetch this is a GET request with authentication
       try {
-        const resp = await fetch(encodeUrl({ sortField, sortDirection, queryString}), options); //makes api call and waits for response
+        const resp = await fetch(
+          encodeUrl(),
+          options
+        ); //makes api call and waits for response
         await handleApiError(resp);
         const response = await resp.json(); //convert response to jS object
         //transform each airtable record into a todo object
@@ -82,37 +88,41 @@ const handleApiError = async (response) => {
         setTodoList(fetchedTodos); //update app state
       } catch (error) {
         setErrorMessage(error.message); // Display error to user
-      } finally { //turns off loading message
-        setIsLoading(false); 
+      } finally {
+        //turns off loading message
+        setIsLoading(false);
       }
     };
     fetchTodos();
-  }, [sortDirection, sortField, queryString])
+  }, [sortDirection, sortField, queryString]);
 
-  const addTodo = async (newTodo) => {
-   const payload = createTodoPayload(newTodo);
-   const options = createFetchOptions('POST', payload);
+  const addTodo = async newTodo => {
+    const payload = createTodoPayload(newTodo);
+    const options = createFetchOptions('POST', payload);
 
-   try {
-    setIsSaving(true);
-    const resp = await fetch(encodeUrl({ sortField, sortDirection, queryString }), options);
-    await handleApiError(resp);
-    //process response and update state
-    const { records } = await resp.json();
-    
-    const savedTodo = transformAirtableRecord(records[0]); 
-    setTodoList([...todoList, savedTodo]);
-   } catch (error) {
-    console.log(error);
-    setErrorMessage(error.message);
-   } finally {
-    setIsSaving(false); 
-   }
+    try {
+      setIsSaving(true);
+      const resp = await fetch(
+        encodeUrl(),
+        options
+      );
+      await handleApiError(resp);
+      //process response and update state
+      const { records } = await resp.json();
+
+      const savedTodo = transformAirtableRecord(records[0]);
+      setTodoList([...todoList, savedTodo]);
+    } catch (error) {
+      console.log(error);
+      setErrorMessage(error.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const completeTodo = async (id) => {
-    const originalTodo = todoList.find((todo) => todo.id === id);
-    const updatedTodo = {...originalTodo, isCompleted: true};
+  const completeTodo = async id => {
+    const originalTodo = todoList.find(todo => todo.id === id);
+    const updatedTodo = { ...originalTodo, isCompleted: true };
     const payload = createTodoPayload(updatedTodo, true);
     const options = createFetchOptions('PATCH', payload);
 
@@ -128,7 +138,7 @@ const handleApiError = async (response) => {
     try {
       setIsSaving(true);
       const resp = await fetch(
-        encodeUrl({ sortField, sortDirection, queryString }),
+        encodeUrl(),
         options
       );
       await handleApiError(resp);
@@ -147,11 +157,11 @@ const handleApiError = async (response) => {
     } finally {
       setIsSaving(false);
     }
-  }
+  };
 
-  const updateTodo = async (editedTodo) => {
+  const updateTodo = async editedTodo => {
     //save original todo
-    const originalTodo = todoList.find((todo) => todo.id === editedTodo.id);
+    const originalTodo = todoList.find(todo => todo.id === editedTodo.id);
     //create payload object
     const payload = createTodoPayload(editedTodo, true);
     //create options object
@@ -169,7 +179,7 @@ const handleApiError = async (response) => {
     try {
       setIsSaving(true);
       const resp = await fetch(
-        encodeUrl({ sortField, sortDirection, queryString }),
+        encodeUrl(),
         options
       );
       await handleApiError(resp);
@@ -194,16 +204,28 @@ const handleApiError = async (response) => {
   return (
     <div>
       <h1>My Todos</h1>
-      <TodoForm onAddTodo={addTodo} isSaving={isSaving}/>
-      <TodoList todoList={todoList} onCompleteTodo={completeTodo} onUpdateTodo={updateTodo} isLoading={isLoading}/>
-      <hr/>
-      <TodosViewForm sortDirection={sortDirection} setSortDirection={setSortDirection} sortField={sortField} setSortField={setSortField} queryString={queryString} setQueryString={setQueryString}/>
-      
-      {errorMessage && ( 
+      <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
+      <TodoList
+        todoList={todoList}
+        onCompleteTodo={completeTodo}
+        onUpdateTodo={updateTodo}
+        isLoading={isLoading}
+      />
+      <hr />
+      <TodosViewForm
+        sortDirection={sortDirection}
+        setSortDirection={setSortDirection}
+        sortField={sortField}
+        setSortField={setSortField}
+        queryString={queryString}
+        setQueryString={setQueryString}
+      />
+
+      {errorMessage && (
         <div>
-          <hr/>
+          <hr />
           <p>{errorMessage}</p>
-          <button onClick={() => setErrorMessage("")}>Dismiss</button>
+          <button onClick={() => setErrorMessage('')}>Dismiss</button>
         </div>
       )}
     </div>
