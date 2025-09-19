@@ -3,6 +3,30 @@ import './App.css';
 import TodoList from './features/TodoList/TodoList';
 import TodoForm from './features/TodoForm';
 import TodosViewForm from './features/TodosViewForm';
+import styles from './App.module.css';
+import styled, { createGlobalStyle } from 'styled-components';
+import logo from './assets/checkmark.svg';
+
+const GlobalStyle = createGlobalStyle`
+  body {
+  background-image: url('https://images.unsplash.com/photo-1740532501882-5766c265f637?q=80&w=627&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  margin: 0;
+  }
+`;
+
+const StyledLogo = styled.img`
+  with: 50px;
+  height: 50px;
+`;
+
+const StyledHeader = styled.header`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
 
 function App() {
   const [todoList, setTodoList] = useState([]);
@@ -77,10 +101,8 @@ function App() {
       setIsLoading(true); //shows loading message
       const options = createFetchOptions('GET'); //tells fetch this is a GET request with authentication
       try {
-        const resp = await fetch(
-          encodeUrl(),
-          options
-        ); //makes api call and waits for response
+        //throw new Error('test');
+        const resp = await fetch(encodeUrl(), options); //makes api call and waits for response
         await handleApiError(resp);
         const response = await resp.json(); //convert response to jS object
         //transform each airtable record into a todo object
@@ -202,33 +224,39 @@ function App() {
   };
 
   return (
-    <div>
-      <h1>My Todos</h1>
-      <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
-      <TodoList
-        todoList={todoList}
-        onCompleteTodo={completeTodo}
-        onUpdateTodo={updateTodo}
-        isLoading={isLoading}
-      />
-      <hr />
-      <TodosViewForm
-        sortDirection={sortDirection}
-        setSortDirection={setSortDirection}
-        sortField={sortField}
-        setSortField={setSortField}
-        queryString={queryString}
-        setQueryString={setQueryString}
-      />
+    <>
+      <GlobalStyle />
+      <div className={styles.appContainer}>
+        <StyledHeader>
+          <StyledLogo src={logo} alt="Todo List Logo" />
+          <h1>My Todos</h1>
+        </StyledHeader>
+        <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
+        <TodoList
+          todoList={todoList}
+          onCompleteTodo={completeTodo}
+          onUpdateTodo={updateTodo}
+          isLoading={isLoading}
+        />
+        <hr />
+        <TodosViewForm
+          sortDirection={sortDirection}
+          setSortDirection={setSortDirection}
+          sortField={sortField}
+          setSortField={setSortField}
+          queryString={queryString}
+          setQueryString={setQueryString}
+        />
 
-      {errorMessage && (
-        <div>
-          <hr />
-          <p>{errorMessage}</p>
-          <button onClick={() => setErrorMessage('')}>Dismiss</button>
-        </div>
-      )}
-    </div>
+        {errorMessage && (
+          <div className={styles.errorMessage}>
+            <hr />
+            <p>{errorMessage}</p>
+            <button onClick={() => setErrorMessage('')}>Dismiss</button>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
