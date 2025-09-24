@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useReducer } from 'react';
 import './App.css';
 import TodoList from './features/TodoList/TodoList';
 import TodoForm from './features/TodoForm';
@@ -6,6 +6,7 @@ import TodosViewForm from './features/TodosViewForm';
 import styles from './App.module.css';
 import styled, { createGlobalStyle } from 'styled-components';
 import logo from './assets/checkmark.svg';
+import { reducer as todoReducer, actions as todoActions, initialState as initialTodoState, } from './reducers/todos.reducer';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -29,10 +30,11 @@ const StyledHeader = styled.header`
 `;
 
 function App() {
-  const [todoList, setTodoList] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const [todoState, dispatch] = useReducer(todoReducer, initialTodoState);
+  //const [todoList, setTodoList] = useState([]);
+ // const [isLoading, setIsLoading] = useState(false);
+  //const [errorMessage, setErrorMessage] = useState('');
+  //const [isSaving, setIsSaving] = useState(false);
   const [sortField, setSortField] = useState('createdTime');
   const [sortDirection, setSortDirection] = useState('desc');
   const [queryString, setQueryString] = useState('');

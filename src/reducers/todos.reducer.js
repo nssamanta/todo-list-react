@@ -30,25 +30,63 @@ let initialState = {
 function reducer(state = initialState, action) {
   switch (action.type) {
     case actions.fetchTodos:
-      return { ...state };
+      return { ...state, isLoading: true };
     case actions.loadTodos:
-      return { ...state };
+      const transformedTodos = action.records.map(record => {
+        const todo = {
+          id: record.id,
+          ...record.fields,
+        };
+        if (!todo.isCompleted) {
+          todo.isCompleted = false;
+        }
+        return todo;
+      });
+      return { ...state, todoList: transformedTodos, isLoading: false };
     case actions.setLoadError:
-      return { ...state };
+      return { ...state, errorMessage: action.error.message, isLoading: false };
     case actions.startRequest:
-      return { ...state };
+      return { ...state, isSaving: true };
     case actions.addTodo:
-      return { ...state };
+      const savedTodo = {
+        id: action.records[0].id,
+        ...action.records[0].fields,
+      };
+      if (!savedTodo.isCompleted) {
+        savedTodo.isCompleted = false;
+      }
+      return {
+        ...state,
+        todoList: [...state.todoList, savedTodo],
+        isSaving: false,
+      };
     case actions.endRequest:
-      return { ...state };
-    case actions.updateTodo:
-      return { ...state };
-    case actions.completeTodo:
-      return { ...state };
+      return { ...state, isLoading: false, isSaving: false };
     case actions.revertTodo:
-      return { ...state };
+      
+    case actions.updateTodo:
+      const updatedTodos = state.todoList.map(todo => {
+        if (todo.id === action.editedTodo.id) {
+          return action.editedTodo;
+        }
+          return todo;
+      });
+      const updatedState = { ...state, todoList: updatedTodos };
+      if (action.error) {
+        updatedState.errorMessage = action.error.message;
+      }
+      return updatedState;
+    case actions.completeTodo:
+      updatedTodos = state.todoList.map(todo => {
+        if (todo.id === action.id) {
+          return { ...todo, isCompleted: true };
+        }
+        return todo;
+      });
+      return { ...state, todoList: updatedTodos };
+
     case actions.clearError:
-      return { ...state };
+      return { ...state, errorMessage: '' };
     //if reducer recieves an action it does not recognize it will return the state as is with default
     default:
       return state;
