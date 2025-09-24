@@ -18,7 +18,7 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 const StyledLogo = styled.img`
-  with: 50px;
+  width: 50px;
   height: 50px;
 `;
 
