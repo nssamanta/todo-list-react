@@ -44,7 +44,7 @@ function reducer(state = initialState, action) {
       });
       return { ...state, todoList: transformedTodos, isLoading: false };
     case actions.setLoadError:
-      return { ...state, errorMessage: action.error.message, isLoading: false };
+      return { ...state, errorMessage: action.error.message, isLoading: false, isSaving: false, };
     case actions.startRequest:
       return { ...state, isSaving: true };
     case actions.addTodo:
@@ -77,13 +77,13 @@ function reducer(state = initialState, action) {
       }
       return updatedState;
     case actions.completeTodo:
-      updatedTodos = state.todoList.map(todo => {
+      const updatedTodosList = state.todoList.map(todo => {
         if (todo.id === action.id) {
           return { ...todo, isCompleted: true };
         }
         return todo;
       });
-      return { ...state, todoList: updatedTodos };
+      return { ...state, todoList: updatedTodosList };
 
     case actions.clearError:
       return { ...state, errorMessage: '' };

@@ -6,7 +6,11 @@ import TodosViewForm from './features/TodosViewForm';
 import styles from './App.module.css';
 import styled, { createGlobalStyle } from 'styled-components';
 import logo from './assets/checkmark.svg';
-import { reducer as todoReducer, actions as todoActions, initialState as initialTodoState, } from './reducers/todos.reducer';
+import {
+  reducer as todoReducer,
+  actions as todoActions,
+  initialState as initialTodoState,
+} from './reducers/todos.reducer';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -31,10 +35,6 @@ const StyledHeader = styled.header`
 
 function App() {
   const [todoState, dispatch] = useReducer(todoReducer, initialTodoState);
-  //const [todoList, setTodoList] = useState([]);
- // const [isLoading, setIsLoading] = useState(false);
-  //const [errorMessage, setErrorMessage] = useState('');
-  //const [isSaving, setIsSaving] = useState(false);
   const [sortField, setSortField] = useState('createdTime');
   const [sortDirection, setSortDirection] = useState('desc');
   const [queryString, setQueryString] = useState('');
@@ -100,128 +100,75 @@ function App() {
   useEffect(() => {
     console.log('🌐 API call triggered! queryString:', queryString);
     const fetchTodos = async () => {
-      setIsLoading(true); //shows loading message
+      dispatch({ type: todoActions.fetchTodos });
       const options = createFetchOptions('GET'); //tells fetch this is a GET request with authentication
       try {
-        //throw new Error('test');
         const resp = await fetch(encodeUrl(), options); //makes api call and waits for response
         await handleApiError(resp);
-        const response = await resp.json(); //convert response to jS object
-        //transform each airtable record into a todo object
-        const fetchedTodos = response.records.map(transformAirtableRecord);
-        setTodoList(fetchedTodos); //update app state
+        const { records } = await resp.json();
+        dispatch({ type: todoActions.loadTodos, records: records });
       } catch (error) {
-        setErrorMessage(error.message); // Display error to user
-      } finally {
-        //turns off loading message
-        setIsLoading(false);
+        dispatch({ type: todoActions.setLoadError, error: error });
       }
     };
     fetchTodos();
-  }, [sortDirection, sortField, queryString]);
+  }, [sortDirection, sortField, queryString, dispatch]);
 
   const addTodo = async newTodo => {
     const payload = createTodoPayload(newTodo);
     const options = createFetchOptions('POST', payload);
 
     try {
-      setIsSaving(true);
-      const resp = await fetch(
-        encodeUrl(),
-        options
-      );
+      dispatch({ type: todoActions.startRequest });
+      const resp = await fetch(encodeUrl(), options);
       await handleApiError(resp);
       //process response and update state
       const { records } = await resp.json();
-
-      const savedTodo = transformAirtableRecord(records[0]);
-      setTodoList([...todoList, savedTodo]);
+      dispatch({ type: todoActions.addTodo, records: records });
     } catch (error) {
       console.log(error);
-      setErrorMessage(error.message);
-    } finally {
-      setIsSaving(false);
+      dispatch({ type: todoActions.setLoadError, error: error });
     }
   };
 
   const completeTodo = async id => {
-    const originalTodo = todoList.find(todo => todo.id === id);
+    const originalTodo = todoState.todoList.find(todo => todo.id === id);
+    dispatch({ type: todoActions.completeTodo, id: id });
     const updatedTodo = { ...originalTodo, isCompleted: true };
     const payload = createTodoPayload(updatedTodo, true);
     const options = createFetchOptions('PATCH', payload);
-
-    const updatedTodos = todoList.map(todo => {
-      if (todo.id === id) {
-        return { ...todo, isCompleted: true };
-      } else {
-        return todo;
-      }
-    });
-    setTodoList(updatedTodos);
-
     try {
-      setIsSaving(true);
-      const resp = await fetch(
-        encodeUrl(),
-        options
-      );
+      const resp = await fetch(encodeUrl(), options);
       await handleApiError(resp);
     } catch (error) {
-      console.log(error);
-      setErrorMessage(`${error.message}. Reverting todo...`);
-
-      const revertedTodos = todoList.map(todo => {
-        if (todo.id === id) {
-          return originalTodo;
-        } else {
-          return todo;
-        }
+      dispatch({
+        type: todoActions.revertTodo,
+        editedTodo: originalTodo,
+        error: error,
       });
-      setTodoList(revertedTodos);
-    } finally {
-      setIsSaving(false);
     }
   };
 
   const updateTodo = async editedTodo => {
     //save original todo
-    const originalTodo = todoList.find(todo => todo.id === editedTodo.id);
-    //create payload object
+    const originalTodo = todoState.todoList.find(
+      todo => todo.id === editedTodo.id
+    );
+    dispatch({ type: todoActions.updateTodo, editedTodo: editedTodo });
+    //create payload/options object
     const payload = createTodoPayload(editedTodo, true);
-    //create options object
     const options = createFetchOptions('PATCH', payload);
-
-    const updatedTodos = todoList.map(todo => {
-      if (todo.id === editedTodo.id) {
-        return { ...editedTodo };
-      } else {
-        return todo;
-      }
-    });
-    setTodoList(updatedTodos);
-
     try {
-      setIsSaving(true);
-      const resp = await fetch(
-        encodeUrl(),
-        options
-      );
+      const resp = await fetch(encodeUrl(), options);
       await handleApiError(resp);
       //the optimisitc update stays
     } catch (error) {
-      console.log(error);
-      setErrorMessage(`${error.message}. Reverting todo...`);
       //create revertedTodos, restore original todo
-      const revertedTodos = todoList.map(todo => {
-        if (todo.id === editedTodo.id) {
-          return originalTodo; //revert to original
-        } else {
-          return todo;
-        }
+      dispatch({
+        type: todoActions.revertTodo,
+        editedTodo: originalTodo,
+        error: error,
       });
-      setTodoList([...revertedTodos]);
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -233,12 +180,12 @@ function App() {
           <StyledLogo src={logo} alt="Todo List Logo" />
           <h1>My Todos</h1>
         </StyledHeader>
-        <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
+        <TodoForm onAddTodo={addTodo} isSaving={todoState.isSaving} />
         <TodoList
-          todoList={todoList}
+          todoList={todoState.todoList}
           onCompleteTodo={completeTodo}
           onUpdateTodo={updateTodo}
-          isLoading={isLoading}
+          isLoading={todoState.isLoading}
         />
         <hr />
         <TodosViewForm
@@ -250,11 +197,13 @@ function App() {
           setQueryString={setQueryString}
         />
 
-        {errorMessage && (
+        {todoState.errorMessage && (
           <div className={styles.errorMessage}>
             <hr />
-            <p>{errorMessage}</p>
-            <button onClick={() => setErrorMessage('')}>Dismiss</button>
+            <p>{todoState.errorMessage}</p>
+            <button onClick={() => dispatch({ type: todoActions.clearError })}>
+              Dismiss
+            </button>
           </div>
         )}
       </div>
