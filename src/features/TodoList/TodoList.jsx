@@ -62,7 +62,7 @@ function TodoList({ todoList, onCompleteTodo, onUpdateTodo, isLoading }) {
             ))}
           </ul>
 
-          <div className="paginationControls">
+          <div className={styles.paginationControls}>
             <button onClick={handlePreviousPage} disabled={currentPage === 1}>
               Previous
             </button>

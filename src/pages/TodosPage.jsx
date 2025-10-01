@@ -5,8 +5,8 @@ import TodosViewForm from '../features/TodosViewForm';
 function TodosPage({
   todoState,
   onAddTodo,
-  completeTodo,
-  updateTodo,
+  onCompleteTodo,
+  onUpdateTodo,
   sortDirection,
   setSortDirection,
   sortField,
@@ -19,8 +19,8 @@ function TodosPage({
       <TodoForm onAddTodo={onAddTodo} isSaving={todoState.isSaving} />
       <TodoList
         todoList={todoState.todoList}
-        onCompleteTodo={completeTodo}
-        onUpdateTodo={updateTodo}
+        onCompleteTodo={onCompleteTodo}
+        onUpdateTodo={onUpdateTodo}
         isLoading={todoState.isLoading}
       />
       <hr />

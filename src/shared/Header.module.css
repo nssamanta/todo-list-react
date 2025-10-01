@@ -1,12 +1,13 @@
 .header {
+  border: 2px solid #dc3545;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center; /* Vertically aligns everything */
-  position: relative; /* Needed for positioning the nav */
-  margin-bottom: 2rem;
+ 
 }
 
 .titleContainer {
+  border: 2px solid #35dc54;
   grid-column: 2/3; /* Places the title in the middle column */
   display: flex;
   align-items: center;
@@ -14,16 +15,23 @@
 }
 
 .nav {
+  border: 4px solid #89dbe6;
+  border-radius: 8px;
   grid-column: 3/4;
   position: absolute;
   top: 0;
+  right: 0;
   display: flex;
   gap: 1rem;
+  padding: 0.5rem;
+  font-size: 1.2rem;
+  background-color: white;
+
+
 }
 
 .active {
   color: #555; /* A more subdued color */
-  text-decoration: none;
   font-weight: bold;
 }
 
