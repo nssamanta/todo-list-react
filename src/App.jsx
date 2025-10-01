@@ -1,16 +1,15 @@
 import { useEffect, useState, useCallback, useReducer } from 'react';
+import { Routes, Route, useLocation } from 'react-router';
 import './App.css';
-import TodoList from './features/TodoList/TodoList';
-import TodoForm from './features/TodoForm';
-import TodosViewForm from './features/TodosViewForm';
 import styles from './App.module.css';
-import styled, { createGlobalStyle } from 'styled-components';
-import logo from './assets/checkmark.svg';
+import { createGlobalStyle } from 'styled-components';
 import {
   reducer as todoReducer,
   actions as todoActions,
   initialState as initialTodoState,
 } from './reducers/todos.reducer';
+import TodosPage from './pages/TodosPage';
+import Header from './shared/Header';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -20,17 +19,6 @@ const GlobalStyle = createGlobalStyle`
   background-attachment: fixed;
   margin: 0;
   }
-`;
-
-const StyledLogo = styled.img`
-  width: 50px;
-  height: 50px;
-`;
-
-const StyledHeader = styled.header`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 `;
 
 function App() {
@@ -172,31 +160,48 @@ function App() {
     }
   };
 
+  const location = useLocation();
+  const [pageTitle, setPageTitle] = useState('Todo List');
+
+  useEffect(() => {
+    switch (location.pathname) {
+      case '/':
+        setPageTitle('Todo List');
+        break;
+      case '/about':
+        setPageTitle('About');
+        break;
+      default:
+        setPageTitle('Not Found');
+    }
+  }, [location]);
+
   return (
     <>
       <GlobalStyle />
       <div className={styles.appContainer}>
-        <StyledHeader>
-          <StyledLogo src={logo} alt="Todo List Logo" />
-          <h1>My Todos</h1>
-        </StyledHeader>
-        <TodoForm onAddTodo={addTodo} isSaving={todoState.isSaving} />
-        <TodoList
-          todoList={todoState.todoList}
-          onCompleteTodo={completeTodo}
-          onUpdateTodo={updateTodo}
-          isLoading={todoState.isLoading}
-        />
-        <hr />
-        <TodosViewForm
-          sortDirection={sortDirection}
-          setSortDirection={setSortDirection}
-          sortField={sortField}
-          setSortField={setSortField}
-          queryString={queryString}
-          setQueryString={setQueryString}
-        />
-
+        <Header title={pageTitle} />
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <TodosPage
+                todoState={todoState}
+                onAddTodo={addTodo}
+                onCompleteTodo={completeTodo}
+                onUpdateTodo={updateTodo}
+                sortDirection={sortDirection}
+                setSortDirection={setSortDirection}
+                sortField={sortField}
+                setSortField={setSortField}
+                queryString={queryString}
+                setQueryString={setQueryString}
+              />
+            }
+          />
+          <Route path="/about" element={<h1>About</h1>} />
+          <Route path="/\*" element={<h1>Not Found</h1>} />
+        </Routes>
         {todoState.errorMessage && (
           <div className={styles.errorMessage}>
             <hr />

@@ -1,0 +1,33 @@
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center; /* Vertically aligns everything */
+  position: relative; /* Needed for positioning the nav */
+  margin-bottom: 2rem;
+}
+
+.titleContainer {
+  grid-column: 2/3; /* Places the title in the middle column */
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav {
+  grid-column: 3/4;
+  position: absolute;
+  top: 0;
+  display: flex;
+  gap: 1rem;
+}
+
+.active {
+  color: #555; /* A more subdued color */
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.inactive {
+  color: #000; /* Primary text color */
+  text-decoration: none;
+}
