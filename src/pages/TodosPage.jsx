@@ -4,7 +4,7 @@ import TodosViewForm from '../features/TodosViewForm';
 
 function TodosPage({
   todoState,
-  addTodo,
+  onAddTodo,
   completeTodo,
   updateTodo,
   sortDirection,
@@ -16,7 +16,7 @@ function TodosPage({
 }) {
   return (
     <>
-      <TodoForm onAddTodo={addTodo} isSaving={todoState.isSaving} />
+      <TodoForm onAddTodo={onAddTodo} isSaving={todoState.isSaving} />
       <TodoList
         todoList={todoState.todoList}
         onCompleteTodo={completeTodo}
