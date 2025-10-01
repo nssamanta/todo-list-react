@@ -10,6 +10,8 @@ import {
 } from './reducers/todos.reducer';
 import TodosPage from './pages/TodosPage';
 import Header from './shared/Header';
+import About from './pages/About';
+import NotFound from './pages/NotFound';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -199,8 +201,8 @@ function App() {
               />
             }
           />
-          <Route path="/about" element={<h1>About</h1>} />
-          <Route path="/\*" element={<h1>Not Found</h1>} />
+          <Route path="/about" element={<About/>} />
+          <Route path="/*" element={<NotFound/>} />
         </Routes>
         {todoState.errorMessage && (
           <div className={styles.errorMessage}>
